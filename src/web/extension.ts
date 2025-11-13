@@ -396,7 +396,7 @@ class DiffCheckerProvider {
 			command: 'showResult',
 			isIdentical: false,
 			differences: diffCount,
-			message: `❌ ${diffCount} difference${diffCount !== 1 ? 's' : ''} found.`,
+			message: `❌ ${diffCount} difference block${diffCount !== 1 ? 's' : ''} found.`,
 			statistics: {
 				lines: {
 					totalA: linesA,
@@ -641,7 +641,6 @@ class DiffCheckerProvider {
 							</div>
 							<div class="line-count" id="lineCountA">0 lines</div>
 							<button class="reset-btn" id="resetA">Reset</button>
-							<div class="statistics-container" id="statsA" style="display: none;"></div>
 						</div>
 						
 						<div class="textbox-wrapper">
@@ -651,7 +650,6 @@ class DiffCheckerProvider {
 							</div>
 							<div class="line-count" id="lineCountB">0 lines</div>
 							<button class="reset-btn" id="resetB">Reset</button>
-							<div class="statistics-container" id="statsB" style="display: none;"></div>
 						</div>
 					</div>
 					

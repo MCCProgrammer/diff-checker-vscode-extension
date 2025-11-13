@@ -136,6 +136,9 @@ body {
 	color: var(--vscode-descriptionForeground);
 	margin-top: -4px;
 	padding-left: 4px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 }
 
 .reset-btn {

@@ -2,7 +2,7 @@
   "name": "diff-checker",
   "displayName": "Diff Checker",
   "description": "Compare two texts side-by-side with difference highlighting and VS Code diff view integration.",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "publisher": "MCCProgrammer",
   "icon": "icon.png",
   "engines": {
@@ -22,7 +22,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MCCProgrammer/github-style-markdown-preview"
+    "url": "https://github.com/MCCProgrammer/diff-checker-vscode-extension.git"
   },
   "activationEvents": [],
   "browser": "./dist/web/extension.js",

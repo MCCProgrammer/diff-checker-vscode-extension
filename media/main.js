@@ -17,47 +17,19 @@
 		const resultContainer = document.getElementById('resultContainer');
 		const resultMessage = document.getElementById('resultMessage');
 		const diffLink = document.getElementById('diffLink');
-		const statsA = document.getElementById('statsA');
-		const statsB = document.getElementById('statsB');
 		
 		if (!textA || !textB || !lineNumbersA || !lineNumbersB) {
 			console.error('Required elements not found');
 			return;
 		}
 		
-		// Function to render statistics
-		function renderStatistics(container, stats, side) {
-			if (!stats || !container) return;
-			
-			const linesTotal = side === 'A' ? stats.lines.totalA : stats.lines.totalB;
-			const wordsTotal = side === 'A' ? stats.words.totalA : stats.words.totalB;
-			
-			const statsHtml = `
-				<div class="stats-header">
-					<span class="stats-label">${side === 'A' ? 'Original' : 'Changed'}</span>
-				</div>
-				<div class="stats-section">
-					<div class="stats-title">Lines</div>
-					<div class="stats-row">
-						<span class="stats-label">Total</span>
-						<span class="stats-value">${linesTotal}</span>
-					</div>
-				</div>
-				<div class="stats-section">
-					<div class="stats-title">Words</div>
-					<div class="stats-row">
-						<span class="stats-label">Total</span>
-						<span class="stats-value">${wordsTotal}</span>
-					</div>
-				</div>
-			`;
-			container.innerHTML = statsHtml;
-		}
-		
-		// Function to update line numbers
+		// Function to update line numbers and word count
 		function updateLineNumbers(textarea, lineNumbersElement, lineCountElement) {
 			const lines = textarea.value.split('\n');
 			const lineCount = lines.length;
+			
+			// Calculate word count
+			const words = textarea.value.split(/\s+/).filter(w => w.trim() !== '').length;
 			
 			// Update line numbers
 			let lineNumbersHtml = '';
@@ -66,8 +38,9 @@
 			}
 			lineNumbersElement.innerHTML = lineNumbersHtml;
 			
-			// Update line count
-			lineCountElement.textContent = lineCount + ' line' + (lineCount !== 1 ? 's' : '');
+			// Update line count and word count
+			lineCountElement.innerHTML = '<span>' + lineCount + ' line' + (lineCount !== 1 ? 's' : '') + '</span>' +
+				'<span>' + words + ' word' + (words !== 1 ? 's' : '') + '</span>';
 			
 			// Sync scroll
 			lineNumbersElement.scrollTop = textarea.scrollTop;
@@ -122,8 +95,7 @@
 			if (headerLabelA) {
 				headerLabelA.textContent = 'Original text';
 			}
-			// Hide statistics, diff link and result container
-			statsA.style.display = 'none';
+			// Hide diff link and result container
 			diffLink.style.display = 'none';
 			resultContainer.style.display = 'none';
 			vscode.postMessage({
@@ -145,8 +117,7 @@
 			if (headerLabelB) {
 				headerLabelB.textContent = 'Changed text';
 			}
-			// Hide statistics, diff link and result container
-			statsB.style.display = 'none';
+			// Hide diff link and result container
 			diffLink.style.display = 'none';
 			resultContainer.style.display = 'none';
 			vscode.postMessage({
@@ -161,8 +132,6 @@
 		// Ensure all result elements are hidden on initial load
 		resultContainer.style.display = 'none';
 		diffLink.style.display = 'none';
-		statsA.style.display = 'none';
-		statsB.style.display = 'none';
 		
 		// Open file buttons
 		openFileA.addEventListener('click', () => {
@@ -228,24 +197,10 @@
 						resultMessage.className = 'result-message identical';
 						// Hide diff link
 						diffLink.style.display = 'none';
-						// Hide statistics
-						statsA.style.display = 'none';
-						statsB.style.display = 'none';
 					} else {
 						resultMessage.className = 'result-message different';
 						// Show diff link after the message
 						diffLink.style.display = 'inline';
-						
-						// Show statistics if available
-						if (message.statistics) {
-							renderStatistics(statsA, message.statistics, 'A');
-							renderStatistics(statsB, message.statistics, 'B');
-							statsA.style.display = 'block';
-							statsB.style.display = 'block';
-						} else {
-							statsA.style.display = 'none';
-							statsB.style.display = 'none';
-						}
 					}
 					break;
 			}
