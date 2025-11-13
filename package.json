@@ -2,7 +2,7 @@
   "name": "diff-checker",
   "displayName": "Diff Checker",
   "description": "Compare two texts side-by-side with difference highlighting and VS Code diff view integration.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "MCCProgrammer",
   "icon": "icon.png",
   "engines": {

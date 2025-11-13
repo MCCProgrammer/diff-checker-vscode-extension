@@ -4,6 +4,12 @@ All notable changes to the "Diff Checker" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.1.1] - 2025-01-13
+
+### Fixed
+- 🎨 **Fixed styling consistency**: Replaced CSS variables with fixed values to ensure consistent appearance across all VS Code themes
+- 🔧 **Line numbers styling**: Fixed line numbers display to match VS Code dark theme appearance
+
 ## [0.1.0] - 2025-11-13
 
 ### Added
