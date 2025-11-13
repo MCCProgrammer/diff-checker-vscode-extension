@@ -1,0 +1,91 @@
+{
+  "name": "diff-checker",
+  "displayName": "Diff Checker",
+  "description": "Compare two texts side-by-side with difference highlighting and VS Code diff view integration.",
+  "version": "1.0.0",
+  "publisher": "MCCProgrammer",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Developer Tools"
+  ],
+  "keywords": [
+    "diff",
+    "compare",
+    "difference",
+    "text",
+    "comparison"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MCCProgrammer/github-style-markdown-preview"
+  },
+  "activationEvents": [],
+  "browser": "./dist/web/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "diff-checker.showDiffChecker",
+        "title": "Show Diff Checker",
+        "icon": "$(diff)",
+        "category": "Diff Checker"
+      },
+      {
+        "command": "diff-checker.loadSelectionA",
+        "title": "Load Selection to Text A",
+        "icon": "$(arrow-down)",
+        "category": "Diff Checker"
+      },
+      {
+        "command": "diff-checker.loadSelectionB",
+        "title": "Load Selection to Text B",
+        "icon": "$(arrow-down)",
+        "category": "Diff Checker"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "diff-checker.showDiffChecker",
+        "key": "ctrl+shift+d",
+        "mac": "cmd+shift+d"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
+    "pretest": "npm run compile-web",
+    "vscode:prepublish": "npm run package-web",
+    "compile-web": "npm run check-types && npm run lint && node esbuild.js",
+    "watch-web": "npm-run-all -p watch-web:*",
+    "watch-web:esbuild": "node esbuild.js --watch",
+    "watch-web:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package-web": "npm run check-types && npm run lint && node esbuild.js --production",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
+  },
+  "devDependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@types/assert": "^1.5.11",
+    "@types/diff": "^7.0.2",
+    "@types/mocha": "^10.0.10",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "@vscode/test-web": "^0.0.74",
+    "assert": "^2.1.0",
+    "esbuild": "^0.25.10",
+    "eslint": "^9.36.0",
+    "glob": "^11.0.3",
+    "mocha": "^11.7.4",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "diff": "^5.1.0"
+  }
+}
