@@ -160,6 +160,7 @@ body {
 	border: 1px solid var(--vscode-input-border);
 	border-radius: 4px;
 	font-size: 12px;
+	display: none; /* Hidden by default */
 }
 
 .stats-header {
@@ -247,16 +248,19 @@ body {
 
 .result-container {
 	margin-top: 15px;
+	margin-bottom: 12px;
 	padding: 12px;
 	border-radius: 4px;
 	background-color: var(--vscode-editor-background);
 	border: 1px solid var(--vscode-panel-border);
+	display: none; /* Hidden by default */
 }
 
 .result-message {
 	font-size: 14px;
-	margin-bottom: 10px;
+	margin-bottom: 8px;
 	word-wrap: break-word;
+	display: inline-block;
 }
 
 .result-message.identical {
@@ -267,17 +271,20 @@ body {
 	color: var(--vscode-testing-iconFailed);
 }
 
-.diff-btn {
-	padding: 8px 16px;
-	background-color: var(--vscode-button-background);
-	color: var(--vscode-button-foreground);
-	border: none;
+.diff-link {
+	color: var(--vscode-textLink-foreground);
+	text-decoration: underline;
 	cursor: pointer;
-	font-size: 13px;
-	border-radius: 2px;
-	width: 100%;
+	font-size: 14px;
+	margin-left: 8px;
+	display: none; /* Hidden by default */
 }
 
-.diff-btn:hover {
-	background-color: var(--vscode-button-hoverBackground);
+.diff-link:hover {
+	color: var(--vscode-textLink-activeForeground);
+}
+
+.diff-link:focus {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 2px;
 }

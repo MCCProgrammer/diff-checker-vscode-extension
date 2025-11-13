@@ -16,7 +16,7 @@
 		const openFileB = document.getElementById('openFileB');
 		const resultContainer = document.getElementById('resultContainer');
 		const resultMessage = document.getElementById('resultMessage');
-		const diffBtn = document.getElementById('diffBtn');
+		const diffLink = document.getElementById('diffLink');
 		const statsA = document.getElementById('statsA');
 		const statsB = document.getElementById('statsB');
 		
@@ -122,8 +122,10 @@
 			if (headerLabelA) {
 				headerLabelA.textContent = 'Original text';
 			}
-			// Hide statistics
+			// Hide statistics, diff link and result container
 			statsA.style.display = 'none';
+			diffLink.style.display = 'none';
+			resultContainer.style.display = 'none';
 			vscode.postMessage({
 				command: 'resetA'
 			});
@@ -143,8 +145,10 @@
 			if (headerLabelB) {
 				headerLabelB.textContent = 'Changed text';
 			}
-			// Hide statistics
+			// Hide statistics, diff link and result container
 			statsB.style.display = 'none';
+			diffLink.style.display = 'none';
+			resultContainer.style.display = 'none';
 			vscode.postMessage({
 				command: 'resetB'
 			});
@@ -153,6 +157,12 @@
 		// Initialize line numbers on load
 		updateLineNumbers(textA, lineNumbersA, lineCountA);
 		updateLineNumbers(textB, lineNumbersB, lineCountB);
+		
+		// Ensure all result elements are hidden on initial load
+		resultContainer.style.display = 'none';
+		diffLink.style.display = 'none';
+		statsA.style.display = 'none';
+		statsB.style.display = 'none';
 		
 		// Open file buttons
 		openFileA.addEventListener('click', () => {
@@ -168,7 +178,8 @@
 		});
 		
 		// See differences button
-		diffBtn.addEventListener('click', () => {
+		diffLink.addEventListener('click', (e) => {
+			e.preventDefault();
 			vscode.postMessage({
 				command: 'openDiffView'
 			});
@@ -215,13 +226,15 @@
 					
 					if (message.isIdentical) {
 						resultMessage.className = 'result-message identical';
-						diffBtn.style.display = 'none';
+						// Hide diff link
+						diffLink.style.display = 'none';
 						// Hide statistics
 						statsA.style.display = 'none';
 						statsB.style.display = 'none';
 					} else {
 						resultMessage.className = 'result-message different';
-						diffBtn.style.display = 'block';
+						// Show diff link after the message
+						diffLink.style.display = 'inline';
 						
 						// Show statistics if available
 						if (message.statistics) {

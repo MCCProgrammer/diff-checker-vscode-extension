@@ -12,10 +12,15 @@ class DiffCheckerProvider {
 	private _filePathB?: vscode.Uri;
 	private _tempFileA?: vscode.Uri;
 	private _tempFileB?: vscode.Uri;
+	private _lastActiveFileUri?: vscode.Uri;
+	private _globalStorageUri?: vscode.Uri;
 
 	constructor(
 		private readonly _extensionUri: vscode.Uri,
-	) { }
+		globalStorageUri?: vscode.Uri
+	) {
+		this._globalStorageUri = globalStorageUri;
+	}
 
 	/**
 	 * Creates or reveals the preview panel
@@ -27,6 +32,8 @@ class DiffCheckerProvider {
 		// If we already have a panel, show it
 		if (this._panel) {
 			this._panel.reveal(targetColumn);
+			// Update last active file when panel gains focus
+			this._updateLastActiveFile();
 			return;
 		}
 
@@ -46,6 +53,16 @@ class DiffCheckerProvider {
 
 		// Set the webview's initial html content
 		this._panel.webview.html = this._getHtmlForWebview(this._panel.webview);
+
+		// Update last active file when panel gains focus
+		this._updateLastActiveFile();
+
+		// Handle panel focus to track last active file
+		this._panel.onDidChangeViewState((e) => {
+			if (e.webviewPanel.visible && e.webviewPanel.active) {
+				this._updateLastActiveFile();
+			}
+		});
 
 		// Handle messages from the webview
 		this._panel.webview.onDidReceiveMessage(
@@ -119,12 +136,30 @@ class DiffCheckerProvider {
 	}
 
 	/**
+	 * Updates the last active file URI
+	 * Only updates if there's an active text editor (not webview)
+	 */
+	private _updateLastActiveFile() {
+		const editor = vscode.window.activeTextEditor;
+		// Only update if there's an active editor and it's not a webview
+		if (editor && editor.document.uri.scheme !== 'vscode-webview') {
+			this._lastActiveFileUri = editor.document.uri;
+		}
+	}
+
+	/**
 	 * Handles activation when command is executed
 	 * Logic: 
 	 * - If no text in boxes and text is selected → paste to Original text (left)
 	 * - If Original text has text and text is selected → paste to Changed text (right)
 	 */
 	public async handleActivation() {
+		// Capture last active file BEFORE creating/showing preview (which may change active editor)
+		const activeEditor = vscode.window.activeTextEditor;
+		if (activeEditor) {
+			this._lastActiveFileUri = activeEditor.document.uri;
+		}
+		
 		// Create or show the preview
 		this.createOrShowPreview();
 
@@ -170,15 +205,39 @@ class DiffCheckerProvider {
 	 */
 	private async _loadSelectionToA() {
 		const editor = vscode.window.activeTextEditor;
+		
+		// If no active editor, try to use the last active file
 		if (!editor) {
-			vscode.window.showWarningMessage('No active editor found.');
-			return;
+			if (this._lastActiveFileUri) {
+				try {
+					const fileContent = await vscode.workspace.fs.readFile(this._lastActiveFileUri);
+					const text = new TextDecoder().decode(fileContent);
+					this._textA = text;
+					const fileName = this._lastActiveFileUri.fsPath.split(/[/\\]/).pop() || 'file';
+					this._filePathA = this._lastActiveFileUri;
+					
+					if (this._panel) {
+						this._panel.webview.postMessage({
+							command: 'setTextA',
+							text: text,
+							fileName: fileName
+						});
+					}
+					return;
+				} catch (error) {
+					vscode.window.showErrorMessage(`Error reading file: ${error}`);
+					return;
+				}
+			} else {
+				vscode.window.showWarningMessage('No active editor found.');
+				return;
+			}
 		}
 
 		const selection = editor.selection;
 		if (selection.isEmpty) {
-			// No selection - use the file path
-			const fileUri = editor.document.uri;
+			// No selection - use the last active file if available, otherwise current file
+			const fileUri = this._lastActiveFileUri || editor.document.uri;
 			this._filePathA = fileUri;
 			const fileName = fileUri.fsPath.split(/[/\\]/).pop() || 'file';
 			
@@ -219,15 +278,39 @@ class DiffCheckerProvider {
 	 */
 	private async _loadSelectionToB() {
 		const editor = vscode.window.activeTextEditor;
+		
+		// If no active editor, try to use the last active file
 		if (!editor) {
-			vscode.window.showWarningMessage('No active editor found.');
-			return;
+			if (this._lastActiveFileUri) {
+				try {
+					const fileContent = await vscode.workspace.fs.readFile(this._lastActiveFileUri);
+					const text = new TextDecoder().decode(fileContent);
+					this._textB = text;
+					const fileName = this._lastActiveFileUri.fsPath.split(/[/\\]/).pop() || 'file';
+					this._filePathB = this._lastActiveFileUri;
+					
+					if (this._panel) {
+						this._panel.webview.postMessage({
+							command: 'setTextB',
+							text: text,
+							fileName: fileName
+						});
+					}
+					return;
+				} catch (error) {
+					vscode.window.showErrorMessage(`Error reading file: ${error}`);
+					return;
+				}
+			} else {
+				vscode.window.showWarningMessage('No active editor found.');
+				return;
+			}
 		}
 
 		const selection = editor.selection;
 		if (selection.isEmpty) {
-			// No selection - use the file path
-			const fileUri = editor.document.uri;
+			// No selection - use the last active file if available, otherwise current file
+			const fileUri = this._lastActiveFileUri || editor.document.uri;
 			this._filePathB = fileUri;
 			const fileName = fileUri.fsPath.split(/[/\\]/).pop() || 'file';
 			
@@ -346,21 +429,52 @@ class DiffCheckerProvider {
 	}
 
 	/**
+	 * Gets the temporary directory for diff files
+	 * Uses VS Code's global storage URI which is in a system temp directory
+	 */
+	private _getTempDir(): vscode.Uri {
+		// Use VS Code's global storage path which is in a temp location
+		// This will be in a system temp directory, not in the workspace
+		if (this._globalStorageUri) {
+			return vscode.Uri.joinPath(this._globalStorageUri, 'diff-temp');
+		}
+		
+		// Fallback: use workspace hidden folder if global storage not available
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		if (workspaceFolder) {
+			return vscode.Uri.joinPath(workspaceFolder.uri, '.tmp-vscode-diff-checker');
+		}
+		
+		// Last resort fallback
+		return vscode.Uri.parse(`file:///tmp/vscode-diff-checker`);
+	}
+
+	/**
 	 * Opens VS Code's built-in diff view with the two texts or files
 	 */
 	private async _openDiffView() {
 		// Clean up old temp files first
 		await this._cleanupTempFiles();
 
+		// Ensure panel is in column 2 before opening diff
+		if (this._panel) {
+			this._panel.reveal(vscode.ViewColumn.Two);
+		}
+
 		// If we have file paths, use them directly (always read from files)
 		if (this._filePathA && this._filePathB) {
-			// Open diff in first column
+			// Open diff - it will open in the active column, so we need to ensure column 1 is active first
+			await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+			await new Promise(resolve => setTimeout(resolve, 100));
+			
 			await vscode.commands.executeCommand(
 				'vscode.diff',
 				this._filePathA,
 				this._filePathB,
 				`${this._filePathA.fsPath.split(/[/\\]/).pop()} ↔ ${this._filePathB.fsPath.split(/[/\\]/).pop()}`
 			);
+			// Wait a bit for diff to open
+			await new Promise(resolve => setTimeout(resolve, 200));
 			// Move to first column
 			await vscode.commands.executeCommand('workbench.action.moveEditorToFirstColumn');
 			return;
@@ -368,13 +482,7 @@ class DiffCheckerProvider {
 
 		// If we have file path A, use it with temp file for text B
 		if (this._filePathA && this._textB !== '') {
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) {
-				vscode.window.showErrorMessage('Please open a workspace folder to use the diff view feature.');
-				return;
-			}
-
-			const tempDir = vscode.Uri.joinPath(workspaceFolder.uri, '.vscode-diff-checker');
+			const tempDir = this._getTempDir();
 			try {
 				await vscode.workspace.fs.createDirectory(tempDir);
 			} catch (error) {
@@ -386,25 +494,25 @@ class DiffCheckerProvider {
 			await vscode.workspace.fs.writeFile(uriB, encoder.encode(this._textB));
 			this._tempFileB = uriB;
 
+			// Focus column 1 first
+			await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+			await new Promise(resolve => setTimeout(resolve, 100));
+
 			await vscode.commands.executeCommand(
 				'vscode.diff',
 				this._filePathA,
 				uriB,
 				`${this._filePathA.fsPath.split(/[/\\]/).pop()} ↔ Text B`
 			);
+			// Wait a bit for diff to open
+			await new Promise(resolve => setTimeout(resolve, 200));
 			// Move to first column
 			await vscode.commands.executeCommand('workbench.action.moveEditorToFirstColumn');
 			return;
 		}
 
 		if (this._filePathB && this._textA !== '') {
-			const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-			if (!workspaceFolder) {
-				vscode.window.showErrorMessage('Please open a workspace folder to use the diff view feature.');
-				return;
-			}
-
-			const tempDir = vscode.Uri.joinPath(workspaceFolder.uri, '.vscode-diff-checker');
+			const tempDir = this._getTempDir();
 			try {
 				await vscode.workspace.fs.createDirectory(tempDir);
 			} catch (error) {
@@ -416,12 +524,18 @@ class DiffCheckerProvider {
 			await vscode.workspace.fs.writeFile(uriA, encoder.encode(this._textA));
 			this._tempFileA = uriA;
 
+			// Focus column 1 first
+			await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+			await new Promise(resolve => setTimeout(resolve, 100));
+
 			await vscode.commands.executeCommand(
 				'vscode.diff',
 				uriA,
 				this._filePathB,
 				`Text A ↔ ${this._filePathB.fsPath.split(/[/\\]/).pop()}`
 			);
+			// Wait a bit for diff to open
+			await new Promise(resolve => setTimeout(resolve, 200));
 			// Move to first column
 			await vscode.commands.executeCommand('workbench.action.moveEditorToFirstColumn');
 			return;
@@ -433,14 +547,7 @@ class DiffCheckerProvider {
 			return;
 		}
 
-		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-		
-		if (!workspaceFolder) {
-			vscode.window.showErrorMessage('Please open a workspace folder to use the diff view feature.');
-			return;
-		}
-
-		const tempDir = vscode.Uri.joinPath(workspaceFolder.uri, '.vscode-diff-checker');
+		const tempDir = this._getTempDir();
 
 		try {
 			// Ensure temp directory exists
@@ -461,6 +568,10 @@ class DiffCheckerProvider {
 		this._tempFileA = uriA;
 		this._tempFileB = uriB;
 
+		// Focus column 1 first
+		await vscode.commands.executeCommand('workbench.action.focusFirstEditorGroup');
+		await new Promise(resolve => setTimeout(resolve, 100));
+
 		// Open diff view
 		await vscode.commands.executeCommand(
 			'vscode.diff',
@@ -468,6 +579,8 @@ class DiffCheckerProvider {
 			uriB,
 			'Text A ↔ Text B'
 		);
+		// Wait a bit for diff to open
+		await new Promise(resolve => setTimeout(resolve, 200));
 		// Move to first column
 		await vscode.commands.executeCommand('workbench.action.moveEditorToFirstColumn');
 	}
@@ -542,14 +655,16 @@ class DiffCheckerProvider {
 						</div>
 					</div>
 					
+					<div class="result-container" id="resultContainer" style="display: none;">
+						<span class="result-message" id="resultMessage"></span>
+						<a href="#" class="diff-link" id="diffLink" style="display: none;">See Differences</a>
+					</div>
+
 					<div class="button-container">
 						<button class="compare-btn" id="compareBtn">Find difference</button>
 					</div>
 					
-					<div class="result-container" id="resultContainer" style="display: none;">
-						<div class="result-message" id="resultMessage"></div>
-						<button class="diff-btn" id="diffBtn" style="display: none;">See Differences</button>
-					</div>
+
 				</div>
 				
 				<script src="${scriptUri}"></script>
@@ -564,7 +679,7 @@ class DiffCheckerProvider {
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Diff Checker extension is now active!');
 
-	const provider = new DiffCheckerProvider(context.extensionUri);
+	const provider = new DiffCheckerProvider(context.extensionUri, context.globalStorageUri);
 
 	// Register command to show diff checker preview
 	const showCommand = vscode.commands.registerCommand(
