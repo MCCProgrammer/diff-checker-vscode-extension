@@ -16,7 +16,10 @@
 		const openFileB = document.getElementById('openFileB');
 		const resultContainer = document.getElementById('resultContainer');
 		const resultMessage = document.getElementById('resultMessage');
-		const diffLink = document.getElementById('diffLink');
+		const diffView = document.getElementById('diffView');
+		const diffColA = document.getElementById('diffColA');
+		const diffColB = document.getElementById('diffColB');
+		const vscodeDiffBtn = document.getElementById('vscodeDiffBtn');
 		
 		if (!textA || !textB || !lineNumbersA || !lineNumbersB) {
 			console.error('Required elements not found');
@@ -46,6 +49,68 @@
 			lineNumbersElement.scrollTop = textarea.scrollTop;
 		}
 		
+		/**
+		 * Renders the side-by-side diff view with colorful line highlights.
+		 * @param {Array<{value: string, added: boolean, removed: boolean}>} diffData
+		 */
+		function renderDiff(diffData) {
+			if (!diffView || !diffColA || !diffColB) { return; }
+
+			// Build left (Original) and right (Changed) line arrays
+			const leftLines = [];
+			const rightLines = [];
+
+			diffData.forEach(part => {
+				const lines = part.value.split('\n');
+				// The diff library includes a trailing empty entry when the part ends with \n
+				if (lines[lines.length - 1] === '') { lines.pop(); }
+
+				if (part.removed) {
+					// Only in original (left side)
+					lines.forEach(line => {
+						leftLines.push({ text: line, type: 'removed' });
+						rightLines.push({ text: '', type: 'spacer' });
+					});
+				} else if (part.added) {
+					// Only in changed (right side)
+					lines.forEach(line => {
+						leftLines.push({ text: '', type: 'spacer' });
+						rightLines.push({ text: line, type: 'added' });
+					});
+				} else {
+					// Unchanged – shown on both sides
+					lines.forEach(line => {
+						leftLines.push({ text: line, type: 'unchanged' });
+						rightLines.push({ text: line, type: 'unchanged' });
+					});
+				}
+			});
+
+			function buildColHtml(lines) {
+				return lines.map((l, i) => {
+					const lineNum = i + 1;
+					const escaped = l.text
+						.replace(/&/g, '&amp;')
+						.replace(/</g, '&lt;')
+						.replace(/>/g, '&gt;');
+
+					if (l.type === 'removed') {
+						return `<div class="diff-line removed"><span class="diff-line-num">${lineNum}</span><span class="diff-sign">−</span><span class="diff-text">${escaped}</span></div>`;
+					} else if (l.type === 'added') {
+						return `<div class="diff-line added"><span class="diff-line-num">${lineNum}</span><span class="diff-sign">+</span><span class="diff-text">${escaped}</span></div>`;
+					} else if (l.type === 'spacer') {
+						return `<div class="diff-line spacer"><span class="diff-line-num"></span><span class="diff-sign"></span><span class="diff-text"></span></div>`;
+					} else {
+						return `<div class="diff-line unchanged"><span class="diff-line-num">${lineNum}</span><span class="diff-sign"> </span><span class="diff-text">${escaped}</span></div>`;
+					}
+				}).join('');
+			}
+
+			diffColA.innerHTML = buildColHtml(leftLines);
+			diffColB.innerHTML = buildColHtml(rightLines);
+			diffView.style.display = 'block';
+		}
+
 		// Update text A
 		textA.addEventListener('input', () => {
 			updateLineNumbers(textA, lineNumbersA, lineCountA);
@@ -79,6 +144,15 @@
 				command: 'compare'
 			});
 		});
+
+		// VSCode diff button
+		if (vscodeDiffBtn) {
+			vscodeDiffBtn.addEventListener('click', () => {
+				vscode.postMessage({
+					command: 'openDiffView'
+				});
+			});
+		}
 		
 		// Reset buttons
 		resetBtnA.addEventListener('click', () => {
@@ -95,9 +169,9 @@
 			if (headerLabelA) {
 				headerLabelA.textContent = 'Original text';
 			}
-			// Hide diff link and result container
-			diffLink.style.display = 'none';
+			// Hide result and diff view
 			resultContainer.style.display = 'none';
+			if (diffView) { diffView.style.display = 'none'; }
 			vscode.postMessage({
 				command: 'resetA'
 			});
@@ -117,9 +191,9 @@
 			if (headerLabelB) {
 				headerLabelB.textContent = 'Changed text';
 			}
-			// Hide diff link and result container
-			diffLink.style.display = 'none';
+			// Hide result and diff view
 			resultContainer.style.display = 'none';
+			if (diffView) { diffView.style.display = 'none'; }
 			vscode.postMessage({
 				command: 'resetB'
 			});
@@ -131,7 +205,7 @@
 		
 		// Ensure all result elements are hidden on initial load
 		resultContainer.style.display = 'none';
-		diffLink.style.display = 'none';
+		if (diffView) { diffView.style.display = 'none'; }
 		
 		// Open file buttons
 		openFileA.addEventListener('click', () => {
@@ -143,14 +217,6 @@
 		openFileB.addEventListener('click', () => {
 			vscode.postMessage({
 				command: 'loadSelectionB'
-			});
-		});
-		
-		// See differences button
-		diffLink.addEventListener('click', (e) => {
-			e.preventDefault();
-			vscode.postMessage({
-				command: 'openDiffView'
 			});
 		});
 		
@@ -195,12 +261,13 @@
 					
 					if (message.isIdentical) {
 						resultMessage.className = 'result-message identical';
-						// Hide diff link
-						diffLink.style.display = 'none';
+						if (diffView) { diffView.style.display = 'none'; }
 					} else {
 						resultMessage.className = 'result-message different';
-						// Show diff link after the message
-						diffLink.style.display = 'inline';
+						// Render inline colored diff
+						if (message.diffData && diffView) {
+							renderDiff(message.diffData);
+						}
 					}
 					break;
 			}

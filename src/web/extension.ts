@@ -397,6 +397,11 @@ class DiffCheckerProvider {
 			isIdentical: false,
 			differences: diffCount,
 			message: `❌ ${diffCount} difference block${diffCount !== 1 ? 's' : ''} found.`,
+			diffData: lineDifferences.map(part => ({
+				value: part.value,
+				added: part.added || false,
+				removed: part.removed || false
+			})),
 			statistics: {
 				lines: {
 					totalA: linesA,
@@ -655,14 +660,25 @@ class DiffCheckerProvider {
 					
 					<div class="result-container" id="resultContainer" style="display: none;">
 						<span class="result-message" id="resultMessage"></span>
-						<a href="#" class="diff-link" id="diffLink" style="display: none;">See Differences</a>
 					</div>
 
 					<div class="button-container">
-						<button class="compare-btn" id="compareBtn">Find difference</button>
+						<button class="compare-btn" id="compareBtn">See differences</button>
 					</div>
 					
-
+					<div class="diff-view" id="diffView" style="display: none;">
+						<div class="diff-view-header">
+							<span class="diff-col-header">Original</span>
+							<span class="diff-col-header">Changed</span>
+						</div>
+						<div class="diff-view-body">
+							<div class="diff-col" id="diffColA"></div>
+							<div class="diff-col" id="diffColB"></div>
+						</div>
+						<div class="vscode-diff-container">
+							<button class="vscode-diff-btn" id="vscodeDiffBtn">Open on VSCode Diff Checker</button>
+						</div>
+					</div>
 				</div>
 				
 				<script src="${scriptUri}"></script>
