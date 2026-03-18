@@ -16,6 +16,7 @@ class DiffCheckerProvider {
 	private _globalStorageUri?: vscode.Uri;
 
 	constructor(
+		private readonly _extensionContext: vscode.ExtensionContext,
 		private readonly _extensionUri: vscode.Uri,
 		globalStorageUri?: vscode.Uri
 	) {
@@ -94,6 +95,12 @@ class DiffCheckerProvider {
 					case 'loadSelectionB':
 						this._loadSelectionToB();
 						break;
+					case 'openFileDialogA':
+						this._openFileDialog('a');
+						break;
+					case 'openFileDialogB':
+						this._openFileDialog('b');
+						break;
 					case 'resetA':
 						this._textA = '';
 						this._filePathA = undefined;
@@ -117,22 +124,22 @@ class DiffCheckerProvider {
 				}
 			},
 			null,
-			[]
+			this._extensionContext.subscriptions
 		);
+
+		// Global listener for active editor changes to track focus
+		vscode.window.onDidChangeActiveTextEditor(editor => {
+			if (editor && editor.document.uri.scheme !== 'vscode-webview') {
+				this._lastActiveFileUri = editor.document.uri;
+			}
+		}, null, this._extensionContext.subscriptions);
 
 		// Handle panel disposal
 		this._panel.onDidDispose(async () => {
 			// Clean up temporary files
 			await this._cleanupTempFiles();
-			// Reset state
-			this._textA = '';
-			this._textB = '';
-			this._filePathA = undefined;
-			this._filePathB = undefined;
-			this._tempFileA = undefined;
-			this._tempFileB = undefined;
 			this._panel = undefined;
-		}, null);
+		}, null, this._extensionContext.subscriptions);
 	}
 
 	/**
@@ -354,8 +361,9 @@ class DiffCheckerProvider {
 			return;
 		}
 
-		const textA = this._textA;
-		const textB = this._textB;
+		// Normalize newlines to avoid invisible character differences
+		const textA = this._textA.replace(/\r\n/g, '\n');
+		const textB = this._textB.replace(/\r\n/g, '\n');
 
 		if (textA === '' && textB === '') {
 			this._panel.webview.postMessage({
@@ -591,6 +599,42 @@ class DiffCheckerProvider {
 	}
 
 	/**
+	 * Opens a file dialog to select a file for either side
+	 */
+	private async _openFileDialog(target: 'a' | 'b') {
+		const options: vscode.OpenDialogOptions = {
+			canSelectMany: false,
+			openLabel: 'Select File',
+			filters: {
+				'All files': ['*']
+			}
+		};
+		const fileUri = await vscode.window.showOpenDialog(options);
+		if (fileUri && fileUri[0]) {
+			const content = await vscode.workspace.fs.readFile(fileUri[0]);
+			const text = new TextDecoder().decode(content);
+			const fileName = fileUri[0].path.split(/[/\\]/).pop() || 'File';
+			const command = target === 'a' ? 'setTextA' : 'setTextB';
+			
+			if (target === 'a') {
+				this._textA = text;
+				this._filePathA = fileUri[0];
+			} else {
+				this._textB = text;
+				this._filePathB = fileUri[0];
+			}
+
+			if (this._panel) {
+				this._panel.webview.postMessage({
+					command: command,
+					text: text,
+					fileName: fileName
+				});
+			}
+		}
+	}
+
+	/**
 	 * Loads selected text into textbox A (public method for command)
 	 */
 	public async loadSelectionA() {
@@ -630,11 +674,17 @@ class DiffCheckerProvider {
 					<div class="header-row">
 						<div class="header-item">
 							<span class="header-label">Original text</span>
-							<button class="open-file-btn" id="openFileA" title="Open file">↑ Open file</button>
+							<div class="header-actions">
+								<button class="open-file-btn" id="openFileA" title="Load from active editor">↑ Active</button>
+								<button class="open-file-btn" id="openFileDialogA" title="Select file from disk">📁 Browse...</button>
+							</div>
 						</div>
 						<div class="header-item">
 							<span class="header-label">Changed text</span>
-							<button class="open-file-btn" id="openFileB" title="Open file">↑ Open file</button>
+							<div class="header-actions">
+								<button class="open-file-btn" id="openFileB" title="Load from active editor">↑ Active</button>
+								<button class="open-file-btn" id="openFileDialogB" title="Select file from disk">📁 Browse...</button>
+							</div>
 						</div>
 					</div>
 					
@@ -693,7 +743,7 @@ class DiffCheckerProvider {
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Diff Checker extension is now active!');
 
-	const provider = new DiffCheckerProvider(context.extensionUri, context.globalStorageUri);
+	const provider = new DiffCheckerProvider(context, context.extensionUri, context.globalStorageUri);
 
 	// Register command to show diff checker preview
 	const showCommand = vscode.commands.registerCommand(

@@ -20,6 +20,8 @@
 		const diffColA = document.getElementById('diffColA');
 		const diffColB = document.getElementById('diffColB');
 		const vscodeDiffBtn = document.getElementById('vscodeDiffBtn');
+		const openFileDialogA = document.getElementById('openFileDialogA');
+		const openFileDialogB = document.getElementById('openFileDialogB');
 		
 		if (!textA || !textB || !lineNumbersA || !lineNumbersB) {
 			console.error('Required elements not found');
@@ -56,59 +58,62 @@
 		function renderDiff(diffData) {
 			if (!diffView || !diffColA || !diffColB) { return; }
 
-			// Build left (Original) and right (Changed) line arrays
-			const leftLines = [];
-			const rightLines = [];
+			const body = diffView.querySelector('.diff-view-body');
+			if (!body) return;
+			body.innerHTML = '';
+			diffView.style.display = 'block';
+
+			let leftLineNum = 1;
+			let rightLineNum = 1;
 
 			diffData.forEach(part => {
 				const lines = part.value.split('\n');
-				// The diff library includes a trailing empty entry when the part ends with \n
 				if (lines[lines.length - 1] === '') { lines.pop(); }
 
-				if (part.removed) {
-					// Only in original (left side)
-					lines.forEach(line => {
-						leftLines.push({ text: line, type: 'removed' });
-						rightLines.push({ text: '', type: 'spacer' });
-					});
-				} else if (part.added) {
-					// Only in changed (right side)
-					lines.forEach(line => {
-						leftLines.push({ text: '', type: 'spacer' });
-						rightLines.push({ text: line, type: 'added' });
-					});
-				} else {
-					// Unchanged – shown on both sides
-					lines.forEach(line => {
-						leftLines.push({ text: line, type: 'unchanged' });
-						rightLines.push({ text: line, type: 'unchanged' });
-					});
-				}
-			});
-
-			function buildColHtml(lines) {
-				return lines.map((l, i) => {
-					const lineNum = i + 1;
-					const escaped = l.text
+				lines.forEach(line => {
+					const row = document.createElement('div');
+					row.className = 'diff-row';
+					
+					const escaped = line
 						.replace(/&/g, '&amp;')
 						.replace(/</g, '&lt;')
 						.replace(/>/g, '&gt;');
 
-					if (l.type === 'removed') {
-						return `<div class="diff-line removed"><span class="diff-line-num">${lineNum}</span><span class="diff-sign">−</span><span class="diff-text">${escaped}</span></div>`;
-					} else if (l.type === 'added') {
-						return `<div class="diff-line added"><span class="diff-line-num">${lineNum}</span><span class="diff-sign">+</span><span class="diff-text">${escaped}</span></div>`;
-					} else if (l.type === 'spacer') {
-						return `<div class="diff-line spacer"><span class="diff-line-num"></span><span class="diff-sign"></span><span class="diff-text"></span></div>`;
+					if (part.removed) {
+						row.innerHTML = `
+							<div class="diff-line removed">
+								<span class="diff-line-num">${leftLineNum++}</span>
+								<span class="diff-sign">−</span>
+								<span class="diff-text">${escaped}</span>
+							</div>
+							<div class="diff-line spacer"></div>
+						`;
+					} else if (part.added) {
+						row.innerHTML = `
+							<div class="diff-line spacer"></div>
+							<div class="diff-line added">
+								<span class="diff-line-num">${rightLineNum++}</span>
+								<span class="diff-sign">+</span>
+								<span class="diff-text">${escaped}</span>
+							</div>
+						`;
 					} else {
-						return `<div class="diff-line unchanged"><span class="diff-line-num">${lineNum}</span><span class="diff-sign"> </span><span class="diff-text">${escaped}</span></div>`;
+						row.innerHTML = `
+							<div class="diff-line unchanged">
+								<span class="diff-line-num">${leftLineNum++}</span>
+								<span class="diff-sign"> </span>
+								<span class="diff-text">${escaped}</span>
+							</div>
+							<div class="diff-line unchanged">
+								<span class="diff-line-num">${rightLineNum++}</span>
+								<span class="diff-sign"> </span>
+								<span class="diff-text">${escaped}</span>
+							</div>
+						`;
 					}
-				}).join('');
-			}
-
-			diffColA.innerHTML = buildColHtml(leftLines);
-			diffColB.innerHTML = buildColHtml(rightLines);
-			diffView.style.display = 'block';
+					body.appendChild(row);
+				});
+			});
 		}
 
 		// Update text A
@@ -164,10 +169,14 @@
 			if (containerA) {
 				containerA.style.height = '';
 			}
-			// Reset header label
+			// Reset header label and button
 			const headerLabelA = document.querySelector('.header-item:first-child .header-label');
 			if (headerLabelA) {
 				headerLabelA.textContent = 'Original text';
+			}
+			if (openFileA) {
+				openFileA.textContent = '↑ Open file';
+				openFileA.classList.remove('loaded');
 			}
 			// Hide result and diff view
 			resultContainer.style.display = 'none';
@@ -186,10 +195,14 @@
 			if (containerB) {
 				containerB.style.height = '';
 			}
-			// Reset header label
+			// Reset header label and button
 			const headerLabelB = document.querySelector('.header-item:last-child .header-label');
 			if (headerLabelB) {
 				headerLabelB.textContent = 'Changed text';
+			}
+			if (openFileB) {
+				openFileB.textContent = '↑ Open file';
+				openFileB.classList.remove('loaded');
 			}
 			// Hide result and diff view
 			resultContainer.style.display = 'none';
@@ -220,6 +233,22 @@
 			});
 		});
 		
+		if (openFileDialogA) {
+			openFileDialogA.addEventListener('click', () => {
+				vscode.postMessage({
+					command: 'openFileDialogA'
+				});
+			});
+		}
+
+		if (openFileDialogB) {
+			openFileDialogB.addEventListener('click', () => {
+				vscode.postMessage({
+					command: 'openFileDialogB'
+				});
+			});
+		}
+		
 		// Handle messages from extension
 		window.addEventListener('message', event => {
 			const message = event.data;
@@ -228,32 +257,32 @@
 				case 'setTextA':
 					textA.value = message.text;
 					updateLineNumbers(textA, lineNumbersA, lineCountA);
-					// Update header label if fileName is provided
+					// Update header label and button if fileName is provided
 					if (message.fileName) {
 						const headerLabelA = document.querySelector('.header-item:first-child .header-label');
 						if (headerLabelA) {
 							headerLabelA.textContent = `Original text (${message.fileName})`;
 						}
+						if (openFileA) {
+							openFileA.textContent = `✓ ${message.fileName}`;
+							openFileA.classList.add('loaded');
+						}
 					}
-					vscode.postMessage({
-						command: 'updateTextA',
-						text: message.text
-					});
 					break;
 				case 'setTextB':
 					textB.value = message.text;
 					updateLineNumbers(textB, lineNumbersB, lineCountB);
-					// Update header label if fileName is provided
+					// Update header label and button if fileName is provided
 					if (message.fileName) {
 						const headerLabelB = document.querySelector('.header-item:last-child .header-label');
 						if (headerLabelB) {
 							headerLabelB.textContent = `Changed text (${message.fileName})`;
 						}
+						if (openFileB) {
+							openFileB.textContent = `✓ ${message.fileName}`;
+							openFileB.classList.add('loaded');
+						}
 					}
-					vscode.postMessage({
-						command: 'updateTextB',
-						text: message.text
-					});
 					break;
 				case 'showResult':
 					resultMessage.textContent = message.message;

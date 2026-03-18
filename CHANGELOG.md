@@ -4,7 +4,21 @@ All notable changes to the "Diff Checker" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.1.1] - 2025-01-13
+## [0.2.0] - 2026-03-18
+
+### Added
+- ✨ **Inline Diff Rendering**: Added a colourful side-by-side diff view directly inside the webview for immediate feedback.
+- 🎨 **Enhanced Highlighting**: Vivid red and green backgrounds for removed and added lines make differences instantly obvious.
+- 🔄 **Synchronized Scrolling**: Re-designed the diff view with a row-based layout for perfect line alignment, even with text wrapping.
+- 📁 **Better File Handling**: Added "Browse" button and improved "Active File" detection with global focus tracking to ensure the correct file is always loaded.
+- 🎯 **Open in VSCode**: Added a button to quickly jump to the native VS Code diff editor if needed.
+
+### Changed
+- 🚀 **Performance & Stability**: Optimized state synchronization between webview and extension host to ensure immediate and accurate results, especially for large files.
+- 📝 **Improved Workflow**: The "See differences" button now renders the diff inline, eliminating the previous "faint box" confusion.
+- 🔧 **UI Refinements**: Renamed buttons and cleaned up the result display for a more intuitive experience.
+
+## [0.1.1] - 2025-01-13 (corrected date)
 
 ### Fixed
 - 🎨 **Fixed styling consistency**: Replaced CSS variables with fixed values to ensure consistent appearance across all VS Code themes
