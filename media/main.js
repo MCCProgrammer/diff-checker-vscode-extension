@@ -55,64 +55,89 @@
 		 * Renders the side-by-side diff view with colorful line highlights.
 		 * @param {Array<{value: string, added: boolean, removed: boolean}>} diffData
 		 */
-		function renderDiff(diffData) {
-			if (!diffView || !diffColA || !diffColB) { return; }
+		function escapeHtml(text) {
+			return text
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;');
+		}
+
+		// One side of a row: line number, sign and the text, with changed words highlighted
+		function sideHtml(side, kind) {
+			if (!side) {
+				return '<div class="diff-line spacer"></div>';
+			}
+			const sign = kind === 'removed' ? '−' : kind === 'added' ? '+' : ' ';
+			const changedClass = kind === 'removed' ? 'chg-removed' : 'chg-added';
+			const text = side.segments
+				.map(segment => segment.changed
+					? '<span class="' + changedClass + '">' + escapeHtml(segment.text) + '</span>'
+					: escapeHtml(segment.text))
+				.join('');
+			return '<div class="diff-line ' + kind + '">' +
+				'<span class="diff-line-num">' + side.num + '</span>' +
+				'<span class="diff-sign">' + sign + '</span>' +
+				'<span class="diff-text">' + text + '</span>' +
+				'</div>';
+		}
+
+		/**
+		 * Renders the side-by-side diff: changed lines face each other, changed words are highlighted.
+		 * @param {Array<{type: string, left?: object, right?: object}>} rows
+		 */
+		function renderDiff(rows) {
+			if (!diffView) { return; }
 
 			const body = diffView.querySelector('.diff-view-body');
-			if (!body) return;
-			body.innerHTML = '';
+			if (!body) { return; }
 			diffView.style.display = 'block';
 
-			let leftLineNum = 1;
-			let rightLineNum = 1;
+			body.innerHTML = rows.map(row => {
+				let left;
+				let right;
+				if (row.type === 'unchanged') {
+					left = sideHtml(row.left, 'unchanged');
+					right = sideHtml(row.right, 'unchanged');
+				} else if (row.type === 'ignored') {
+					left = sideHtml(row.left, 'ignored');
+					right = sideHtml(row.right, 'ignored');
+				} else {
+					left = sideHtml(row.left, 'removed');
+					right = sideHtml(row.right, 'added');
+				}
+				return '<div class="diff-row">' + left + right + '</div>';
+			}).join('');
+		}
 
-			diffData.forEach(part => {
-				const lines = part.value.split('\n');
-				if (lines[lines.length - 1] === '') { lines.pop(); }
+		// Ignore options, remembered between sessions
+		const optionIds = ['ignoreWhitespace', 'ignoreCase', 'ignoreBlankLines'];
+		const savedState = vscode.getState() || {};
+		optionIds.forEach(id => {
+			const checkbox = document.getElementById(id);
+			if (!checkbox) { return; }
+			checkbox.checked = !!(savedState.options && savedState.options[id]);
+			checkbox.addEventListener('change', () => {
+				vscode.setState(Object.assign({}, vscode.getState(), { options: currentOptions() }));
+				// Compare again if a result is already shown
+				if (resultContainer && resultContainer.style.display === 'block') {
+					compare();
+				}
+			});
+		});
 
-				lines.forEach(line => {
-					const row = document.createElement('div');
-					row.className = 'diff-row';
-					
-					const escaped = line
-						.replace(/&/g, '&amp;')
-						.replace(/</g, '&lt;')
-						.replace(/>/g, '&gt;');
+		function currentOptions() {
+			const options = {};
+			optionIds.forEach(id => {
+				const checkbox = document.getElementById(id);
+				options[id] = !!(checkbox && checkbox.checked);
+			});
+			return options;
+		}
 
-					if (part.removed) {
-						row.innerHTML = `
-							<div class="diff-line removed">
-								<span class="diff-line-num">${leftLineNum++}</span>
-								<span class="diff-sign">−</span>
-								<span class="diff-text">${escaped}</span>
-							</div>
-							<div class="diff-line spacer"></div>
-						`;
-					} else if (part.added) {
-						row.innerHTML = `
-							<div class="diff-line spacer"></div>
-							<div class="diff-line added">
-								<span class="diff-line-num">${rightLineNum++}</span>
-								<span class="diff-sign">+</span>
-								<span class="diff-text">${escaped}</span>
-							</div>
-						`;
-					} else {
-						row.innerHTML = `
-							<div class="diff-line unchanged">
-								<span class="diff-line-num">${leftLineNum++}</span>
-								<span class="diff-sign"> </span>
-								<span class="diff-text">${escaped}</span>
-							</div>
-							<div class="diff-line unchanged">
-								<span class="diff-line-num">${rightLineNum++}</span>
-								<span class="diff-sign"> </span>
-								<span class="diff-text">${escaped}</span>
-							</div>
-						`;
-					}
-					body.appendChild(row);
-				});
+		function compare() {
+			vscode.postMessage({
+				command: 'compare',
+				options: currentOptions()
 			});
 		}
 
@@ -144,11 +169,7 @@
 		});
 		
 		// Compare button
-		compareBtn.addEventListener('click', () => {
-			vscode.postMessage({
-				command: 'compare'
-			});
-		});
+		compareBtn.addEventListener('click', compare);
 
 		// VSCode diff button
 		if (vscodeDiffBtn) {
@@ -293,9 +314,9 @@
 						if (diffView) { diffView.style.display = 'none'; }
 					} else {
 						resultMessage.className = 'result-message different';
-						// Render inline colored diff
-						if (message.diffData && diffView) {
-							renderDiff(message.diffData);
+						// Render the side-by-side diff
+						if (message.rows && diffView) {
+							renderDiff(message.rows);
 						}
 					}
 					break;

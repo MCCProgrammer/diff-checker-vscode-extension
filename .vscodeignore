@@ -19,3 +19,4 @@ PUBLISHING.md
 PUBLISHING_STEPS.md
 *.vsix
 .github/**
+images/**
