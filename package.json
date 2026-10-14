@@ -2,8 +2,19 @@
   "name": "diff-checker",
   "displayName": "Diff Checker",
   "description": "Compare two texts side-by-side with difference highlighting and VS Code diff view integration.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "MCCProgrammer",
+  "author": {
+    "name": "MCCProgrammer",
+    "email": "contact@mccprogrammer.com"
+  },
+  "sponsor": {
+    "url": "https://ko-fi.com/mccprogrammer"
+  },
+  "bugs": {
+    "url": "https://github.com/MCCProgrammer/diff-checker-vscode-extension/issues"
+  },
+  "homepage": "https://github.com/MCCProgrammer/diff-checker-vscode-extension#readme",
   "icon": "icon.png",
   "engines": {
     "vscode": "^1.85.0"

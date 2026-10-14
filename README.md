@@ -5,6 +5,8 @@ A Visual Studio Code extension that allows you to compare two texts side-by-side
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/MCCProgrammer.diff-checker?label=VS%20Code%20Marketplace&logo=visualstudiocode&style=flat-square&color=1f2328)](https://marketplace.visualstudio.com/items?itemName=MCCProgrammer.diff-checker)
 [![Open VSX](https://img.shields.io/open-vsx/v/MCCProgrammer/diff-checker?label=Open%20VSX&logo=eclipseide&style=flat-square&color=1f2328)](https://open-vsx.org/extension/MCCProgrammer/diff-checker)
 
+[![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20me-FF5E5B?logo=ko-fi&logoColor=white&style=flat-square)](https://ko-fi.com/mccprogrammer)
+
 ## ✨ Features
 
 - 📝 **Side-by-Side Comparison**: Compare two texts in a clean, organized interface
@@ -105,6 +107,12 @@ No known issues at this time.
 ## 📝 Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+
+## 📬 Contact & Support
+
+Questions, feedback or ideas: [contact@mccprogrammer.com](mailto:contact@mccprogrammer.com).
+
+If the extension helps you, a coffee on [Ko-fi](https://ko-fi.com/mccprogrammer) makes a big difference.
 
 ## 🤝 Contributing
 

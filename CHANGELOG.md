@@ -4,6 +4,12 @@ All notable changes to the "Diff Checker" extension will be documented in this f
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.2.1] - 2026-10-14
+
+### Added
+- Ko-fi support link (Sponsor button on the store page and in the README) and a contact email: contact@mccprogrammer.com.
+- Issues link on the store page.
+
 ## [0.2.0] - 2026-03-18
 
 ### Added
