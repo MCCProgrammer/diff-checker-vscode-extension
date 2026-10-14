@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as diff from 'diff';
+import { computeDiff, describeDiff, DiffOptions } from './diffRows';
 
 /**
  * Provider for the Diff Checker preview panel
@@ -84,7 +84,7 @@ class DiffCheckerProvider {
 						}
 						break;
 					case 'compare':
-						this._compareTexts();
+						this._compareTexts(message.options || {});
 						break;
 					case 'openDiffView':
 						this._openDiffView();
@@ -356,7 +356,7 @@ class DiffCheckerProvider {
 	/**
 	 * Compares the two texts and shows the result
 	 */
-	private _compareTexts() {
+	private _compareTexts(options: DiffOptions = {}) {
 		if (!this._panel) {
 			return;
 		}
@@ -376,48 +376,40 @@ class DiffCheckerProvider {
 			return;
 		}
 
-		if (textA === textB) {
+		const result = computeDiff(textA, textB, options);
+		const ignoring = [
+			options.ignoreWhitespace ? 'whitespace' : '',
+			options.ignoreCase ? 'case' : '',
+			options.ignoreBlankLines ? 'blank lines' : ''
+		].filter(Boolean);
+
+		if (result.blocks === 0) {
 			this._panel.webview.postMessage({
 				command: 'showResult',
 				isIdentical: true,
 				differences: 0,
-				message: '✅ Texts are identical!',
+				message: textA === textB || ignoring.length === 0
+					? '✅ Texts are identical!'
+					: `✅ Texts are identical when ignoring ${ignoring.join(', ')}.`,
 				statistics: null
 			});
 			return;
 		}
 
-		// Calculate differences using diff library
-		const lineDifferences = diff.diffLines(textA, textB);
-		
-		// Calculate line statistics
-		const linesA = textA.split('\n').length;
-		const linesB = textB.split('\n').length;
-		
-		// Calculate word statistics
-		const wordsA = textA.split(/\s+/).filter(w => w.trim() !== '').length;
-		const wordsB = textB.split(/\s+/).filter(w => w.trim() !== '').length;
-		
-		const diffCount = lineDifferences.filter(p => p.added || p.removed).length;
-
 		this._panel.webview.postMessage({
 			command: 'showResult',
 			isIdentical: false,
-			differences: diffCount,
-			message: `❌ ${diffCount} difference block${diffCount !== 1 ? 's' : ''} found.`,
-			diffData: lineDifferences.map(part => ({
-				value: part.value,
-				added: part.added || false,
-				removed: part.removed || false
-			})),
+			differences: result.blocks,
+			message: `❌ ${describeDiff(result)}.`,
+			rows: result.rows,
 			statistics: {
 				lines: {
-					totalA: linesA,
-					totalB: linesB
+					totalA: textA.split('\n').length,
+					totalB: textB.split('\n').length
 				},
 				words: {
-					totalA: wordsA,
-					totalB: wordsB
+					totalA: textA.split(/\s+/).filter(w => w.trim() !== '').length,
+					totalB: textB.split(/\s+/).filter(w => w.trim() !== '').length
 				}
 			}
 		});
@@ -708,15 +700,21 @@ class DiffCheckerProvider {
 						</div>
 					</div>
 					
-					<div class="result-container" id="resultContainer" style="display: none;">
+					<div class="result-container" id="resultContainer">
 						<span class="result-message" id="resultMessage"></span>
+					</div>
+
+					<div class="options-row">
+						<label><input type="checkbox" id="ignoreWhitespace"> Ignore whitespace</label>
+						<label><input type="checkbox" id="ignoreCase"> Ignore case</label>
+						<label><input type="checkbox" id="ignoreBlankLines"> Ignore blank lines</label>
 					</div>
 
 					<div class="button-container">
 						<button class="compare-btn" id="compareBtn">See differences</button>
 					</div>
 					
-					<div class="diff-view" id="diffView" style="display: none;">
+					<div class="diff-view" id="diffView">
 						<div class="diff-view-header">
 							<span class="diff-col-header">Original</span>
 							<span class="diff-col-header">Changed</span>
@@ -726,7 +724,7 @@ class DiffCheckerProvider {
 							<div class="diff-col" id="diffColB"></div>
 						</div>
 						<div class="vscode-diff-container">
-							<button class="vscode-diff-btn" id="vscodeDiffBtn">Open on VSCode Diff Checker</button>
+							<button class="vscode-diff-btn" id="vscodeDiffBtn">Open in VS Code's diff editor</button>
 						</div>
 					</div>
 				</div>

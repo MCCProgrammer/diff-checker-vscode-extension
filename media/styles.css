@@ -1,9 +1,9 @@
 body {
 	padding: 10px;
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
 	font-size: 13px;
-	color: #cccccc;
-	background-color: #1e1e1e;
+	color: var(--vscode-foreground);
+	background-color: var(--vscode-editor-background);
 }
 
 .container {
@@ -20,7 +20,7 @@ body {
 	margin: 0;
 	font-size: 18px;
 	font-weight: 600;
-	color: #cccccc;
+	color: var(--vscode-foreground);
 }
 
 .header-row {
@@ -46,7 +46,7 @@ body {
 .header-label {
 	font-size: 13px;
 	font-weight: 500;
-	color: #cccccc;
+	color: var(--vscode-foreground);
 }
 
 .open-file-btn {
@@ -89,8 +89,8 @@ body {
 	display: flex;
 	width: 100%;
 	height: 300px;
-	border: 1px solid #3e3e42;
-	background-color: #252526;
+	border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+	background-color: var(--vscode-input-background);
 	overflow: hidden;
 }
 
@@ -98,8 +98,8 @@ body {
 	width: 40px;
 	padding: 8px 4px;
 	background-color: rgba(128, 128, 128, 0.1);
-	color: #858585;
-	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+	color: var(--vscode-editorLineNumber-foreground);
+	font-family: var(--vscode-editor-font-family, 'Consolas', 'Monaco', 'Courier New', monospace);
 	font-size: 14px;
 	text-align: right;
 	user-select: none;
@@ -127,9 +127,9 @@ body {
 	height: 100%;
 	padding: 8px;
 	border: none;
-	background-color: #252526;
-	color: #cccccc;
-	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+	background-color: var(--vscode-input-background);
+	color: var(--vscode-input-foreground);
+	font-family: var(--vscode-editor-font-family, 'Consolas', 'Monaco', 'Courier New', monospace);
 	font-size: 14px;
 	resize: none;
 	box-sizing: border-box;
@@ -138,13 +138,13 @@ body {
 }
 
 .textbox-wrapper textarea:focus {
-	outline: 2px solid #007acc;
+	outline: 2px solid var(--vscode-focusBorder);
 	outline-offset: -2px;
 }
 
 .line-count {
 	font-size: 11px;
-	color: #858585;
+	color: var(--vscode-descriptionForeground);
 	margin-top: -4px;
 	padding-left: 4px;
 	display: flex;
@@ -154,8 +154,8 @@ body {
 
 .reset-btn {
 	padding: 6px 12px;
-	background-color: #3c3c3c;
-	color: #cccccc;
+	background-color: var(--vscode-button-secondaryBackground);
+	color: var(--vscode-button-secondaryForeground);
 	border: none;
 	cursor: pointer;
 	font-size: 12px;
@@ -164,7 +164,7 @@ body {
 }
 
 .reset-btn:hover {
-	background-color: #2a2d2e;
+	background-color: var(--vscode-button-secondaryHoverBackground);
 }
 
 .button-container {
@@ -175,8 +175,8 @@ body {
 
 .compare-btn {
 	padding: 12px 24px;
-	background-color: #4caf50;
-	color: white;
+	background-color: var(--vscode-button-background);
+	color: var(--vscode-button-foreground);
 	border: none;
 	cursor: pointer;
 	font-size: 14px;
@@ -187,7 +187,7 @@ body {
 }
 
 .compare-btn:hover {
-	background-color: #45a049;
+	background-color: var(--vscode-button-hoverBackground);
 }
 
 .compare-btn:active {
@@ -198,8 +198,8 @@ body {
 	margin-top: 8px;
 	padding: 10px 14px;
 	border-radius: 4px;
-	background-color: #1e1e1e;
-	border: 1px solid #3e3e42;
+	background-color: var(--vscode-editor-background);
+	border: 1px solid var(--vscode-panel-border);
 	display: none; /* Hidden by default */
 }
 
@@ -210,11 +210,34 @@ body {
 }
 
 .result-message.identical {
-	color: #89d185;
+	color: var(--vscode-testing-iconPassed, #73c991);
 }
 
 .result-message.different {
-	color: #f48771;
+	color: var(--vscode-errorForeground);
+}
+
+/* Ignore options above the compare button */
+.options-row {
+	display: flex;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 18px;
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--vscode-descriptionForeground);
+}
+
+.options-row label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+}
+
+.options-row input {
+	accent-color: var(--vscode-button-background);
+	cursor: pointer;
 }
 
 /* =============================================
@@ -298,15 +321,43 @@ body {
     flex: 1;
 }
 
-/* Diff Highlighting */
+/* Diff highlighting: the same colours as VS Code's diff editor in the current theme */
 .diff-line.removed {
-    background-color: rgba(255, 0, 0, 0.15);
-    color: #f48771;
+    background-color: var(--vscode-diffEditor-removedLineBackground, rgba(255, 0, 0, 0.2));
+    color: var(--vscode-editor-foreground);
 }
 
 .diff-line.added {
-    background-color: rgba(70, 200, 70, 0.15);
-    color: #89d185;
+    background-color: var(--vscode-diffEditor-insertedLineBackground, rgba(155, 185, 85, 0.2));
+    color: var(--vscode-editor-foreground);
+}
+
+.diff-line.removed .diff-sign {
+    color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+}
+
+.diff-line.added .diff-sign {
+    color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+}
+
+/* Words that changed inside a modified line: the text colour stacks on the line colour,
+   and a solid underline keeps them visible in every theme */
+.chg-removed {
+    background-color: var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.2));
+    box-shadow: inset 0 -2px 0 var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+    border-radius: 2px;
+}
+
+.chg-added {
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(156, 204, 44, 0.2));
+    box-shadow: inset 0 -2px 0 var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+    border-radius: 2px;
+}
+
+/* Blank lines skipped by "Ignore blank lines" */
+.diff-line.ignored {
+    color: var(--vscode-descriptionForeground);
+    opacity: 0.6;
 }
 
 .diff-line.unchanged {

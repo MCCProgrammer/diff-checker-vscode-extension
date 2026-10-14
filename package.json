@@ -2,21 +2,38 @@
   "name": "diff-checker",
   "displayName": "Diff Checker",
   "description": "Compare two texts side-by-side with difference highlighting and VS Code diff view integration.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "MCCProgrammer",
+  "author": {
+    "name": "MCCProgrammer",
+    "email": "contact@mccprogrammer.com"
+  },
+  "sponsor": {
+    "url": "https://ko-fi.com/mccprogrammer"
+  },
+  "bugs": {
+    "url": "https://github.com/MCCProgrammer/diff-checker-vscode-extension/issues"
+  },
+  "homepage": "https://github.com/MCCProgrammer/diff-checker-vscode-extension#readme",
   "icon": "icon.png",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
   ],
   "keywords": [
     "diff",
     "compare",
     "difference",
     "text",
-    "comparison"
+    "comparison",
+    "text compare",
+    "compare text",
+    "compare files",
+    "diff tool",
+    "diffchecker"
   ],
   "license": "MIT",
   "repository": {
@@ -46,13 +63,24 @@
         "category": "Diff Checker"
       }
     ],
-    "keybindings": [
-      {
-        "command": "diff-checker.showDiffChecker",
-        "key": "ctrl+shift+d",
-        "mac": "cmd+shift+d"
-      }
-    ]
+    "menus": {
+      "editor/context": [
+        {
+          "command": "diff-checker.showDiffChecker",
+          "group": "diffChecker@1"
+        },
+        {
+          "command": "diff-checker.loadSelectionA",
+          "when": "editorHasSelection",
+          "group": "diffChecker@2"
+        },
+        {
+          "command": "diff-checker.loadSelectionB",
+          "when": "editorHasSelection",
+          "group": "diffChecker@3"
+        }
+      ]
+    }
   },
   "scripts": {
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
